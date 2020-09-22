@@ -75,3 +75,64 @@ Example:
 ```julia
  moveStepper!(con, robo, [1.0,2.0,3.4,7.1])  
  ```
+
+# Example of an Arduino code
+
+```cpp
+#include <Stepper.h> 
+ 
+const int stepsPerRevolution = 500;
+String v1;
+String v2; 
+  
+//Pins
+Stepper myStepperX(stepsPerRevolution, 22,23,24,25); 
+Stepper myStepperY(stepsPerRevolution, 26,27,28,29); 
+Stepper myStepperZ(stepsPerRevolution, 30,31,32,33); 
+Stepper myStepperW(stepsPerRevolution, 34,35,36,37);
+
+void setup() 
+{   
+    Serial.begin(9600);
+     
+    myStepperX.setSpeed(60);
+    myStepperY.setSpeed(60);
+    myStepperZ.setSpeed(60);
+    myStepperW.setSpeed(60);
+} 
+  
+void loop() 
+{ 
+    //int stepper_status = 0;
+    int motorID = 0;
+    //int motorSteps = 0;
+
+    if(Serial.available()){
+        
+        String v1 = Serial.readStringUntil(';'); 
+        String v2 = Serial.readStringUntil('\0');
+        
+        motorID = v1;
+        int motorSteps = v2.toInt();
+        //int state = Serial.parseInt();
+
+        if(motorID=="x"){
+          myStepperX.step(motorSteps);
+        }
+        if(motorID=="y"){
+          myStepperY.step(motorSteps);
+        }
+        if(motorID=="z"){
+          myStepperZ.step(motorSteps);
+        }
+        if(motorID=="w"){
+          myStepperW.step(motorSteps);
+        }
+     }
+
+     //int stepper1_status = digitalRead(ctrl_stepper1);
+
+     Serial.println(motorID);
+     delay(500);
+}
+```

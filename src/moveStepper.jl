@@ -82,10 +82,10 @@ function moveStepper!(dev, s, new_coords::Array{Float64,1}; relat=true,
     if method == "manhattan"
         msg = []
         for i in 1:length(order)
-            msg_temp = stid[i]*";"*string(steps[i]).*";"
+            msg_temp = stid[i]*";"*string(steps[i])*";"
             push!(msg, msg_temp)
             if !isnothing(dev)
-                write(dev, msg)
+                write(dev, msg_temp)
                 waitMove(dev)
             end
         end

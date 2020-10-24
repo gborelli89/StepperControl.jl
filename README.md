@@ -4,7 +4,7 @@ A basic stepper motor control implementation. It can be used with an Arduino boa
 
 ## Initializing and configuring
 
-The connection can be made with the function stepperOpen. The arguments are
+The connection can be made with the function `stepper_open`. The arguments are
 
 * `port`: if *nothing* (default), then the first port in the list is used. The USB port was used during the development (Arduino).
 * `baud`: baudrate (default = 9600)
@@ -12,11 +12,11 @@ The connection can be made with the function stepperOpen. The arguments are
 Examples:
 
 ```julia
-con = serialOpen() # for port=nothing and baud=9600
-con = serialOpen(port="dev/ttyACM0)
+con = serial_open() # for port=nothing and baud=9600
+con = serial_open(port="dev/ttyACM0)
 ```
 
-The configuration can be done with the function `stepperConfig`. The arguments for the function are
+The configuration can be done with the function `stepper_config`. The arguments for the function are
 
 * `motorID`: an array of strings with the stepper motors ID.
 * `ratio`: the displacement/#steps ratio for each stepper motor
@@ -26,7 +26,7 @@ Notice this provides a generic implementation. Many steppers can be used at the 
 Example:
 
 ```julia
-robo = stepperConfig(["x","y","z","w"], [0.05,0.05.0.05,0.01])
+robo = stepper_config(["x","y","z","w"], [0.05,0.05.0.05,0.01])
 ```
 
 The function retuns a *NamedTuple* with the initial position `robo.pos` (always considered at the origin), the motor IDs `robo.motorID` and the ratios `robo.ratio`. The position is the only variable which can be modified. The other arguments (motor ID and ratios) are given in tuples, therefore are fixed values.
@@ -37,8 +37,8 @@ Two auxiliary functions for stepper motor moving were created: `coords2steps` an
 
 Parameters for the functions (in order):
 
-* the *NamedTuple* returned from `stepperConfig`
-* array with the *Float64* coordinates (`coords2steps`) or the *Int64* number of steps (`steps2coords!`)
+* the *NamedTuple* returned from `stepper_config`
+* array with the  coordinates (`coords2steps`) or the number of steps (`steps2coords!`)
 * indexes with the motor order
 * `relat`: boolean indicating if the movement is absolute or relative (default - `relat=true`)
 
@@ -54,15 +54,15 @@ steps2coords!(robo, steps_b, [2,1])
 
 ## Zero function
 
-One can define a position as zero with the function `zeroStepper!`. There is only one parameter: the *NamedTuple* defined above (returned from `stepperConfig`). The `robo.pos` is modified and all the entries are changed to *0.0*.
+One can define a position as zero with the function `zero_stepper!`. There is only one parameter: the *NamedTuple* defined above (returned from `stepper_config`). The `robo.pos` is modified and all the entries are changed to *0.0*.
 
 ## Move single or multiple steppers
 
-The function `moveStepper!` can be used to move one or many stepper motors of the system and update the pos entries. The parameters are
+The function `move_stepper!` can be used to move one or many stepper motors of the system and update the pos entries. The parameters are
 
-* connection (returned from `stepperOpen`)
-* *NamedTuple* with the position and configuration info (returned from `stepperConfig`)
-* a *Float 64* array with the new coordinates
+* connection (returned from `stepper_open`)
+* *NamedTuple* with the position and configuration info (returned from `stepper_config`)
+* an array with the new coordinates
 
 There are also some optional parameters:
 
@@ -73,7 +73,7 @@ There are also some optional parameters:
 Example:
 
 ```julia
- moveStepper!(con, robo, [1.0,2.0,3.4,7.1])  
+ move_stepper!(con, robo, [1.0,2.0,3.4,7.1])  
  ```
 
 # Example of an Arduino code
@@ -82,9 +82,9 @@ Example:
 
 ```julia
 using StepperControl
-dev = stepperOpen()
-robot = stepperConfig(["x","y"], [0.1,0.1])
-# move using moveStepper!
+dev = stepper_open()
+robot = stepper_config(["x","y"], [0.1,0.1])
+# move using move_stepper!
 ```
 
 **Arduino**
@@ -97,8 +97,8 @@ String v1;
 String v2; 
 
 //Pins
-Stepper myStepperX(stepsPerRevolution, 22,23,24,25); 
-Stepper myStepperY(stepsPerRevolution, 30,31,32,33); 
+Stepper myStepperX(stepsPerRevolution, 22,24,23,25); 
+Stepper myStepperY(stepsPerRevolution, 30,32,31,33); 
 
 void setup() 
 {   

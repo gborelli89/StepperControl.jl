@@ -8,11 +8,11 @@ include("serialConnection.jl")
 include("moveStepper.jl")
 
 export
-    stepperOpen,
-    stepperConfig,
+    stepper_open,
+    stepper_config,
     coords2steps,
     steps2coords!,
-    zeroStepper!,
-    moveStepper!
+    zero_stepper!,
+    move_stepper!
 
 end

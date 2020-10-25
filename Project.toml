@@ -1,7 +1,7 @@
 name = "StepperControl"
 uuid = "23cd0f54-a98b-493b-8f90-f19796b263f4"
 authors = ["Gabriel Borelli"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 SerialPorts = "5d0f9de7-4c7f-54f5-bec2-484e8c04014e"

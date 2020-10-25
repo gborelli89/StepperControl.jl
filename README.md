@@ -2,6 +2,16 @@
 
 A basic stepper motor control implementation. It can be used with an Arduino board to control many stepper motors. The home functionally was not implemented yet.
 
+## Installation
+
+The `StepperControl.jl` is a non official Julia package. It can be installed using the following command inside the Julia REPL:
+
+```julia
+using Pkg
+Pkg.add("https://github.com/gborelli89/StepperControl.jl")
+```
+
+
 ## Initializing and configuring
 
 The connection can be made with the function `stepper_open`. The arguments are

@@ -1,4 +1,130 @@
 """
+    waitmove(dev::StepperSystem)
+
+## Description
+Wait for stepper complete movement.
+## Arguments
+- dev: element of StepperSystem type with the serial connection (dev.con)
+"""
+function waitmove(dev::StepperSystem)
+
+    status = 0
+    while status == 0
+        status = bytesavailable(dev.con)
+    end
+
+    sleep(0.2)
+end
+
+"""
+    stepper_zero!(dev::StepperSystem)
+
+## Description
+Makes current position the origin.
+## Arguments
+- dev: element of StepperSystem type  
+"""
+function stepper_zero!(dev::StepperSystem)
+    dev.pos = dev.pos * 0.0
+end
+
+"""
+    getpos(dev::StepperSystem)
+
+## Description
+Function to get the current position. Returns a vector of floats.
+## Arguments
+- dev: element of StepperSystem type
+"""
+getpos(dev::StepperSystem) = dev.pos[1:end]
+
+"""
+    deltacoord(dev::StepperSystem, new_coords::AbstractVector)
+
+## Description
+Computes de difference between the new and actual coordinates
+## Arguments
+- dev: element of StepperSystem type
+- new_coords: array of the new coordinates
+"""
+deltacoord(dev::StepperSystem, new_coords::AbstractVector) = new_coords - getpos(dev)
+
+
+"""
+    stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
+
+## Description
+Move system
+## Arguments
+- dev: element of StepperSystem type
+- new_coords: arry of the new coordinates
+- relat: if true the relative movement is performed
+- order: trigger order
+- method: there are two methods available. For "manhattan" steps are written one at a time. For "all" everything is passed right through.
+## Examples
+```jldoctest
+julia> dev = stepper_open(2);
+
+julia> stepper_config!(dev, motorID=["x","y"]);
+
+julia> stepper_move!(dev, [10.0, 20.0])
+2-element Array{Any,1}:
+ "x;10;"
+ "y;20;"
+
+ julia> getpos(dev)
+ 2-element Array{Float64,1}:
+ 10.0
+ 20.0
+
+ julia> stepper_move!(dev, [10.0, 20.0], order=[2,1], method="all")
+ "y;20;x;10;"
+
+ julia> getpos(dev)
+ 2-element Array{Float64,1}:
+ 20.0
+ 40.0
+```
+"""
+function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
+
+    n = length(dev.id)
+
+    new_coords = float(new_coords)
+    stepper_id = dev.id[order]
+
+    if !relat
+        new_coords = deltacoord(dev, new_coords)
+    end
+    steps = [dev.stepconv[i](new_coords[i]) for i in order]
+
+    if method == "manhattan"
+        msg = []
+        for j in 1:n
+            msg_temp = stepper_id[j]*";"*string(steps[j])*";"
+            push!(msg, msg_temp)
+            if !isopen(dev.con)
+                write(dev.con, msg_temp)
+                waitmove(dev)
+            end
+        end
+
+    elseif method == "all"
+        msg = prod(stepper_id.*";".*string.(steps).*";")
+        if !isopen(dev.con)
+            write(dev.con, msg)
+            waitmove(dev)
+        end
+    end
+
+    coords = [dev.coordconv[order[k]](steps[k]) for k in 1:n]
+    dev.pos[order] += coords 
+
+    return msg
+end
+
+
+"""
     coords2steps(s, coords::Array{Float64,1}, order::Array{Int64,1}; relat=true)
  
 ## Description
@@ -18,18 +144,18 @@ julia> coords2steps(r, [100.0, 50.0], [1,3])
   50
 ```
 """
-function coords2steps(s, coords::AbstractArray, order::Array{Int64,1}; relat=true)
-
-    coords = float(coords)
-    if relat
-        steps = round.(Int, coords ./ s.ratio[order])
-    else
-        Δcoords = coords .- s.pos[order]
-        steps = round.(Int, Δcoords ./ s.ratio[order])
-    end
-
-    return steps
-end
+#function coords2steps(s, coords::AbstractArray, order::Array{Int64,1}; relat=true)
+#
+#    coords = float(coords)
+#    if relat
+#        steps = round.(Int, coords ./ s.ratio[order])
+#    else
+#        Δcoords = coords .- s.pos[order]
+#        steps = round.(Int, Δcoords ./ s.ratio[order])
+#    end
+#
+#    return steps
+#end
 
 """
     steps2coords!(s, steps::Array{Int64,1}, order::Array{Int64,1})
@@ -51,11 +177,11 @@ julia> steps2coords!(r, [10, 20, 30], [1,2,3])
  60.0
 ```
 """
-function steps2coords!(s, steps::Array{Int64,1}, order::Array{Int64,1})
-
-    s.pos[order] .= s.pos[order] .+ steps .* s.ratio[order]
-
-end
+#function steps2coords!(s, steps::Array{Int64,1}, order::Array{Int64,1})
+#
+#    s.pos[order] .= s.pos[order] .+ steps .* s.ratio[order]
+#
+#end
 
 """
     zero_stepper!(s)
@@ -65,7 +191,7 @@ Zero position.
 ## Arguments
 - s: system position and motor IDs (structure returned from configStepper())
 """
-zero_stepper!(s) = s.pos .= s.pos .* 0
+#zero_stepper!(s) = s.pos .= s.pos .* 0
 
 """
     waitmove(dev)
@@ -75,15 +201,15 @@ Wait for stepper complete movement.
 ## Arguments
 - dev: connection
 """
-function waitmove(dev)
+#function waitmove(dev)
 
-    status = 0
-    while status == 0
-        status = bytesavailable(dev)
-    end
+#    status = 0
+#    while status == 0
+#        status = bytesavailable(dev.con)
+#    end
 
-    sleep(0.2)
-end
+#    sleep(0.2)
+#end
 
 """
     move_stepper!(dev, s, new_coords::AbstractArray; relat=true, order=nothing, method="manhattan")
@@ -126,36 +252,36 @@ julia> r.pos
   64.0
 ```
 """
-function move_stepper!(dev, s, new_coords::AbstractArray; relat=true, order=nothing, method="manhattan")
-
-    new_coords = float(new_coords)
-
-    if isnothing(order)
-        order = collect(1:length(s.motorID))
-    end
-        stid = s.motorID[order]
-
-    steps = coords2steps(s, new_coords, order, relat=relat)
-
-    if method == "manhattan"
-        msg = []
-        for i in 1:length(order)
-            msg_temp = stid[i]*";"*string(steps[i])*";"
-            push!(msg, msg_temp)
-            if !isnothing(dev)
-                write(dev, msg_temp)
-                waitmove(dev)
-            end
-        end
-
-    elseif method == "all"
-        msg = prod(stid.*";".*string.(steps).*";")
-        if !isnothing(dev)
-            write(dev, msg)
-            waitmove(dev)
-        end
-    end
-
-    steps2coords!(s, steps, order)
-    return msg
-end
+#function move_stepper!(dev, s, new_coords::AbstractArray; relat=true, order=nothing, method="manhattan")
+#
+#    new_coords = float(new_coords)
+#
+#    if isnothing(order)
+#        order = collect(1:length(s.motorID))
+#    end
+#        stid = s.motorID[order]
+#
+#    steps = coords2steps(s, new_coords, order, relat=relat)
+#
+#    if method == "manhattan"
+#        msg = []
+#        for i in 1:length(order)
+#            msg_temp = stid[i]*";"*string(steps[i])*";"
+#            push!(msg, msg_temp)
+#            if !isnothing(dev)
+#                write(dev, msg_temp)
+#                waitmove(dev)
+#            end
+#        end
+#
+#    elseif method == "all"
+#        msg = prod(stid.*";".*string.(steps).*";")
+#        if !isnothing(dev)
+#            write(dev, msg)
+#            waitmove(dev)
+#        end
+#    end
+#
+#    steps2coords!(s, steps, order)
+#    return msg
+#end

@@ -4,15 +4,15 @@ using SerialPorts
 using StaticArrays
 
 include("serialConnection.jl")
-
 include("moveStepper.jl")
 
 export
     stepper_open,
-    stepper_config,
-    coords2steps,
-    steps2coords!,
-    zero_stepper!,
-    move_stepper!
+    stepper_config!,
+    linear_step2coord,
+    linear_coord2step,
+    stepper_zero!,
+    getpos,
+    stepper_move!
 
 end

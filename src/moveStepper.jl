@@ -96,7 +96,7 @@ function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=tru
     if !relat
         new_coords = deltacoord(dev, new_coords)
     end
-    steps = [dev.stepconv[i](new_coords[i]) for i in order]
+    steps = [dev.coord2step[i](new_coords[i]) for i in order]
 
     if method == "manhattan"
         msg = []
@@ -120,7 +120,7 @@ function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=tru
         msg = prod(stepper_id.*";".*string.(steps).*";")
     end
 
-    coords = [dev.coordconv[order[k]](steps[k]) for k in 1:n]
+    coords = [dev.step2coord[order[k]](steps[k]) for k in 1:n]
     dev.pos[order] += coords 
 
     return msg

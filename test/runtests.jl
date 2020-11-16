@@ -21,9 +21,9 @@ using Test
     @test f(2048)/(2π) == 10.0
     g = linear_coord2step(spr=2048, r=10)
     @test g(f(2048)) == 2048
-    stepper_config!(s, coordconv_fun=[f,f,f], stepconv_fun=[g,g,g])
-    @test s.coordconv[1](1024)/π == 10
-    @test s.stepconv[1](s.coordconv[1](100)) == 100
+    stepper_config!(s, step2coord=[f,f,f], coord2step=[g,g,g])
+    @test s.step2coord[1](1024)/π == 10
+    @test s.coord2step[1](s.step2coord[1](100)) == 100
 
 #    p = stepper_config(["x","y","z","w"], [0.1,0.1,0.1,0.1])
 #    @test_throws DimensionMismatch stepper_config(["x","y","z"],[1.0,1.0])

@@ -6,8 +6,8 @@ mutable struct StepperSystem{N}
     con
     pos::MVector{N,Float64}
     id::MVector{N,String}
-    coordconv::MVector{N,Any}
-    stepconv::MVector{N,Any}
+    step2coord::MVector{N,Any}
+    coord2step::MVector{N,Any}
 end
 
 
@@ -25,8 +25,8 @@ The output is a StepperSystem type including the following elements with fixed s
 - con: port connection
 - pos: position 
 - id: stepper motors IDs
-- coordconv: array of functions to convert steps into coordinates
-- stepconv: array of functions to convert coordinates into steps
+- step2coord: array of functions to convert steps into coordinates
+- coord2step: array of functions to convert coordinates into steps
 - testnocon: true for testing purposes. Makes dev.con equals missing
 Except from con, all the other elements must be configured (see StepperControl.stepper_config)
 """
@@ -103,15 +103,15 @@ end
 
 
 """
-    stepper_config!(dev::StepperSystem; motorID::AbstractVector=dev.id, coordconv_fun::AbstractVector=dev.coordconv, stepconv_fun::AbstractVector=dev.stepconv)
+    stepper_config!(dev::StepperSystem; motorID::AbstractVector=dev.id, step2coord::AbstractVector=dev.step2coord, coord2step::AbstractVector=dev.coord2step)
 
 ## Description
 Configure stepper system.
 ## Arguments
 - dev: element of StepperSystem type
 - motorID: array with motor IDs
-- coordconv_fun: functions to convert steps into coordinates
-- stepconv_fun: functions to convert coordinates into steps 
+- step2coord: functions to convert steps into coordinates
+- coord2step: functions to convert coordinates into steps 
 ## Examples
 ```jldoctest
 julia> r = stepper_open(2);
@@ -121,49 +121,49 @@ julia> r.id
  "m1"
  "m2"
 
-julia> r.coordconv[1](10)
+julia> r.step2coord[1](10)
 10
-julia> r.stepconv[1](10)
+julia> r.coord2step[1](10)
 10
 
 julia> f = linear_step2coord(spr=2048, r=2);
 
 julia> g = linear_coord2step(spr=2048, r=2);
 
-julia> stepper_config!(r, motorID=["x","y"], coordconv_fun=[f], stepconv_fun=[g]);
+julia> stepper_config!(r, motorID=["x","y"], step2coord=[f], coord2step=[g]);
 
 julia> r.id
 2-element MArray{Tuple{2},String,1,2} with indices SOneTo(2):
  "x"
  "y"
 
- julia> r.coordconv[1](10)
+ julia> r.step2coord[1](10)
  0.06135923151542565
- julia> r.coordconv[1](2048)/(2π)
+ julia> r.step2coord[1](2048)/(2π)
  2.0
 
- julia> r.stepconv[1](10)
+ julia> r.coord2step[1](10)
  1630
- julia> r.stepconv[1](4π)
+ julia> r.coord2step[1](4π)
  2048
 ```
 """
 function stepper_config!(dev::StepperSystem; motorID::AbstractVector = dev.id, 
-                        coordconv_fun::AbstractVector = dev.coordconv, 
-                        stepconv_fun::AbstractVector = dev.stepconv)
+                        step2coord::AbstractVector = dev.step2coord, 
+                        coord2step::AbstractVector = dev.coord2step)
 
     n = length(dev.id)
     dev.id = motorID
 
-    if length(coordconv_fun) == 1 
-        coordconv_fun = repeat(coordconv_fun, n)
+    if length(step2coord) == 1 
+        step2coord = repeat(step2coord, n)
     end
-    dev.coordconv = coordconv_fun
+    dev.step2coord = step2coord
 
-    if length(stepconv_fun) ==1
-        stepconv_fun = repeat(stepconv_fun, n)
+    if length(coord2step) ==1
+        coord2step = repeat(coord2step, n)
     end
-    dev.stepconv = stepconv_fun
+    dev.coord2step = coord2step
 
 end
 

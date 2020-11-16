@@ -3,7 +3,7 @@
 # --------------------------------------------------------------------------------------
 
 mutable struct StepperSystem{N} 
-    con::SerialPort
+    con
     pos::MVector{N,Float64}
     id::MVector{N,String}
     coordconv::MVector{N,Any}
@@ -27,14 +27,19 @@ The output is a StepperSystem type including the following elements with fixed s
 - id: stepper motors IDs
 - coordconv: array of functions to convert steps into coordinates
 - stepconv: array of functions to convert coordinates into steps
+- testnocon: true for testing purposes. Makes dev.con equals missing
 Except from con, all the other elements must be configured (see StepperControl.stepper_config)
 """
-function stepper_open(dof; port=nothing, baud=9600)
+function stepper_open(dof; port=nothing, baud=9600, testnocon=false)
 
-    if isnothing(port)
-        port = list_serialports()[1]
+    if testnocon
+        con = missing
+    else
+        if isnothing(port)
+            port = list_serialports()[1]
+        end
+        con = SerialPort(port, baud)
     end
-    con = SerialPort(port, baud)
 
     pos = repeat([0.0], dof)
     id = "m" .* string.(1:dof)

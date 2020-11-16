@@ -60,7 +60,7 @@ Move system
 - new_coords: arry of the new coordinates
 - relat: if true the relative movement is performed
 - order: trigger order
-- method: there are two methods available. For "manhattan" steps are written one at a time. For "all" everything is passed right through.
+- method: there are three methods available. For "manhattan" steps are written one at a time. For "all" everything is passed right through. The "test" method don't need any connections (dev.con = missing).
 ## Examples
 ```jldoctest
 julia> dev = stepper_open(2);
@@ -88,7 +88,7 @@ julia> stepper_move!(dev, [10.0, 20.0])
 """
 function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
 
-    n = length(dev.id)
+    n = length(order)
 
     new_coords = float(new_coords)
     stepper_id = dev.id[order]
@@ -115,6 +115,9 @@ function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=tru
             write(dev.con, msg)
             waitmove(dev)
         end
+
+    elseif method == "test"
+        msg = prod(stepper_id.*";".*string.(steps).*";")
     end
 
     coords = [dev.coordconv[order[k]](steps[k]) for k in 1:n]

@@ -49,6 +49,69 @@ Computes de difference between the new and actual coordinates
 """
 deltacoord(dev::StepperSystem, new_coords::AbstractVector) = new_coords - getpos(dev)
 
+"""
+    manhattan_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+
+## Description
+Function to pass one instruction per line
+## Arguments
+- dev: element of StepperSystem type
+- id: stepper motor id
+- steps: number of steps
+"""
+function manhattan_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+    
+    n =length(id)
+
+    msg = []
+    for j in 1:n
+        msg_temp = id[j]*";"*string(steps[j])*";"
+        push!(msg, msg_temp)
+        if !isopen(dev.con)
+            write(dev.con, msg_temp)
+            waitmove(dev)
+        end
+    end
+
+    return msg
+end
+
+
+"""
+    oneline_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+
+## Description
+Function to pass all instructions in one line
+## Arguments
+- dev: element of StepperSystem type
+- id: stepper motor id
+- steps: number of steps
+"""
+function oneline_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+
+    msg = prod(id.*";".*string.(steps).*";")
+    if !isopen(dev.con)
+        write(dev.con, msg)
+        waitmove(dev)
+    end
+
+    return msg
+end
+
+
+"""
+    test_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+
+## Description
+Function test message for a stepper motor system
+## Arguments
+- dev: element of StepperSystem type
+- id: stepper motor id
+- steps: number of steps
+"""
+function test_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+    msg = prod(id.*";".*string.(steps).*";")
+end
 
 """
     stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
@@ -86,9 +149,9 @@ julia> stepper_move!(dev, [10.0, 20.0])
  40.0
 ```
 """
-function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
+function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method=manhattan_msg)
 
-    n = length(order)
+    n = length(new_coords)
 
     new_coords = float(new_coords)
     stepper_id = dev.id[order]
@@ -96,36 +159,16 @@ function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=tru
     if !relat
         new_coords = deltacoord(dev, new_coords)
     end
-    steps = [dev.coord2step[i](new_coords[i]) for i in order]
+    steps = [dev.coord2step[i](new_coords[dev.depend[i]]) for i in 1:n]
+    steps_msg = steps[order]
 
-    if method == "manhattan"
-        msg = []
-        for j in 1:n
-            msg_temp = stepper_id[j]*";"*string(steps[j])*";"
-            push!(msg, msg_temp)
-            if !isopen(dev.con)
-                write(dev.con, msg_temp)
-                waitmove(dev)
-            end
-        end
+    msg = method(dev, stepper_id, steps_msg)
 
-    elseif method == "all"
-        msg = prod(stepper_id.*";".*string.(steps).*";")
-        if !isopen(dev.con)
-            write(dev.con, msg)
-            waitmove(dev)
-        end
-
-    elseif method == "test"
-        msg = prod(stepper_id.*";".*string.(steps).*";")
-    end
-
-    coords = [dev.step2coord[order[k]](steps[k]) for k in 1:n]
-    dev.pos[order] += coords 
+    coords = [dev.step2coord[k](steps[dev.depend[k]]) for k in 1:n]
+    dev.pos[order] += coords[order] 
 
     return msg
 end
-
 
 """
     coords2steps(s, coords::Array{Float64,1}, order::Array{Int64,1}; relat=true)

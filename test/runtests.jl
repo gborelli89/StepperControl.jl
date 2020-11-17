@@ -6,15 +6,15 @@ using Test
     stepper_config!(s, motorID=["x","y","z"])
     @test getpos(s) == [0,0,0]
     @test s.id == ["x", "y", "z"]
-    @test stepper_move!(s, [10,20,30], method="test") == "x;10;y;20;z;30;"
+    @test stepper_move!(s, [10,20,30], method=StepperControl.test_msg) == "x;10;y;20;z;30;"
     @test getpos(s) == [10,20,30]
-    @test stepper_move!(s, [1,2,3], order=[2,3,1], method="test") == "y;2;z;3;x;1;"
+    @test stepper_move!(s, [1,2,3], order=[2,3,1], method=StepperControl.test_msg) == "y;2;z;3;x;1;"
     @test getpos(s) == [11,22,33]
-    @test stepper_move!(s, [1,2,3], relat=false, method="test") == "x;-10;y;-20;z;-30;"
+    @test stepper_move!(s, [1,2,3], relat=false, method=StepperControl.test_msg) == "x;-10;y;-20;z;-30;"
     @test getpos(s) == [1,2,3]
     stepper_zero!(s)
     @test getpos(s) == [0,0,0]
-    @test stepper_move!(s, [1,2,3], order=[2], method="test") == "y;2;"
+    @test stepper_move!(s, [1,2,3], order=[2], method=StepperControl.test_msg) == "y;2;"
     @test getpos(s) == [0,2,0]
 
     f = linear_step2coord(spr=2048, r=10)
@@ -24,6 +24,19 @@ using Test
     stepper_config!(s, step2coord=[f,f,f], coord2step=[g,g,g])
     @test s.step2coord[1](1024)/π == 10
     @test s.coord2step[1](s.step2coord[1](100)) == 100
+
+    f1(v) = v
+    f2(v) = v[2] - v[1]
+    g1(v) = Int(round(v))
+    g2(v) = Int(round(v[1] + v[2]))
+    stepper_zero!(s)
+    stepper_config!(s, motorID=["x","y","z"], step2coord=[f1,f2,f1], coord2step=[g1,g2,g1], depend=[1,[1,2],3])
+    @test stepper_move!(s, [10,20,30], method=StepperControl.test_msg) == "x;10;y;30;z;30;"
+    @test getpos(s) == [10,20,30]
+    @test stepper_move!(s, [1,2,3], order= [2,1,3], method=StepperControl.test_msg) == "y;3;x;1;z;3;"
+    @test getpos(s) == [11,22,33]
+    @test stepper_move!(s, [1,2,3], relat=false, method=StepperControl.test_msg) == "x;-10;y;-30;z;-30;"
+    @test getpos(s) == [1,2,3]
 
 #    p = stepper_config(["x","y","z","w"], [0.1,0.1,0.1,0.1])
 #    @test_throws DimensionMismatch stepper_config(["x","y","z"],[1.0,1.0])

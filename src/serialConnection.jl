@@ -8,6 +8,7 @@ mutable struct StepperSystem{N}
     id::MVector{N,String}
     step2coord::MVector{N,Any}
     coord2step::MVector{N,Any}
+    depend::MVector{N,Any}
 end
 
 
@@ -20,6 +21,7 @@ Function to open a generic connection and returns a StepperSystem type to contro
 - dof: degrees of freedom
 - port: port path. If nothing it'll get the first port of SerialPort.list_serialports
 - baud: baud rate (default = 9600)
+- testnocon: true for testing purposes. Makes dev.con equals missing
 ## Observations
 The output is a StepperSystem type including the following elements with fixed size (dof):
 - con: port connection
@@ -27,7 +29,7 @@ The output is a StepperSystem type including the following elements with fixed s
 - id: stepper motors IDs
 - step2coord: array of functions to convert steps into coordinates
 - coord2step: array of functions to convert coordinates into steps
-- testnocon: true for testing purposes. Makes dev.con equals missing
+- depend: element with the dependecies. To be used with the conversio functions. Allows dependent systems.
 Except from con, all the other elements must be configured (see StepperControl.stepper_config)
 """
 function stepper_open(dof; port=nothing, baud=9600, testnocon=false)
@@ -46,7 +48,7 @@ function stepper_open(dof; port=nothing, baud=9600, testnocon=false)
     f(x) = float(x) 
     g(x) = Int(round(x))
 
-    dev = StepperSystem{dof}(con, pos, id, repeat([f], dof), repeat([g], dof))
+    dev = StepperSystem{dof}(con, pos, id, repeat([f], dof), repeat([g], dof), 1:dof)
 
     return dev
 end
@@ -103,15 +105,16 @@ end
 
 
 """
-    stepper_config!(dev::StepperSystem; motorID::AbstractVector=dev.id, step2coord::AbstractVector=dev.step2coord, coord2step::AbstractVector=dev.coord2step)
-
+    stepper_config!(dev::StepperSystem; motorID::AbstractVector=dev.id, step2coord::AbstractVector=dev.step2coord, coord2step::AbstractVector=dev.coord2step, depend::AbstractVector=dev.depend)
+    
 ## Description
 Configure stepper system.
 ## Arguments
 - dev: element of StepperSystem type
 - motorID: array with motor IDs
-- step2coord: functions to convert steps into coordinates
-- coord2step: functions to convert coordinates into steps 
+- step2coord: function to convert steps into coordinates
+- coord2step: function to convert coordinates into steps
+- 
 ## Examples
 ```jldoctest
 julia> r = stepper_open(2);
@@ -149,8 +152,8 @@ julia> r.id
 ```
 """
 function stepper_config!(dev::StepperSystem; motorID::AbstractVector = dev.id, 
-                        step2coord::AbstractVector = dev.step2coord, 
-                        coord2step::AbstractVector = dev.coord2step)
+                        step2coord::AbstractVector = dev.step2coord, coord2step::AbstractVector = dev.coord2step,
+                        depend::AbstractVector = dev.depend)
 
     n = length(dev.id)
     dev.id = motorID
@@ -164,6 +167,8 @@ function stepper_config!(dev::StepperSystem; motorID::AbstractVector = dev.id,
         coord2step = repeat(coord2step, n)
     end
     dev.coord2step = coord2step
+
+    dev.depend = depend
 
 end
 

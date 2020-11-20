@@ -38,24 +38,6 @@ Function to get the current position. Returns a vector of floats.
 """
 getpos(dev::StepperSystem) = dev.pos[1:end]
 
-"""
-    deltacoord(dev::StepperSystem, new_coords)
-
-## Description
-Computes de difference between the new and actual coordinates
-## Arguments
-- dev: element of StepperSystem type
-- new_coords: array of the new coordinates
-"""
-function deltacoord(dev::StepperSystem, new_coords) 
-    
-    if length(new_coords) != length(getpos(dev))
-        throw(DimensionMismatch("new_coords must have the same length as dev.pos"))
-    end
-   
-    δc = new_coords .- getpos(dev)
-    return δc
-end
 
 """
     manhattan_msg(dev::StepperSystem, id, steps)
@@ -75,9 +57,11 @@ function manhattan_msg(dev::StepperSystem, id, steps)
     for j in 1:n
         msg_temp = id[j]*";"*string(steps[j])*";"
         push!(msg, msg_temp)
-        if !isopen(dev.con)
+        if isopen(dev.con)
             write(dev.con, msg_temp)
             waitmove(dev)
+        else
+            throw(AssertionError("Please open the connection!"))
         end
     end
 
@@ -98,9 +82,11 @@ Function to pass all instructions in one line
 function oneline_msg(dev::StepperSystem, id, steps)
 
     msg = prod(id.*";".*string.(steps).*";")
-    if !isopen(dev.con)
+    if isopen(dev.con)
         write(dev.con, msg)
         waitmove(dev)
+    else
+        throw(AssertionError("Please open the connection!"))
     end
 
     return msg
@@ -164,10 +150,16 @@ function stepper_move!(dev::StepperSystem, new_coords; relat=true, order=1:lengt
     new_coords = float(new_coords)
     stepper_id = dev.id[order]
 
-    if !relat
-        new_coords = deltacoord(dev, new_coords)
-    end
+#    if !relat
+#        new_coords = deltacoord(dev, new_coords)
+#    end
     steps = [dev.coord2step[i](new_coords[dev.depend[i]]) for i in 1:n]
+    
+    if !relat
+        steps_init = [dev.coord2step[i](getpos(dev)[dev.depend[i]]) for i in 1:n]
+        steps = steps - steps_init
+    end
+
     steps_msg = steps[order]
 
     msg = method(dev, stepper_id, steps_msg)

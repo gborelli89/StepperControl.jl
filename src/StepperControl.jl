@@ -7,6 +7,7 @@ include("serialConnection.jl")
 include("moveStepper.jl")
 
 export
+    StepperSystem,
     stepper_open,
     stepper_config!,
     linear_step2coord,

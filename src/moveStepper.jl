@@ -39,7 +39,7 @@ Function to get the current position. Returns a vector of floats.
 getpos(dev::StepperSystem) = dev.pos[1:end]
 
 """
-    deltacoord(dev::StepperSystem, new_coords::AbstractVector)
+    deltacoord(dev::StepperSystem, new_coords)
 
 ## Description
 Computes de difference between the new and actual coordinates
@@ -47,10 +47,18 @@ Computes de difference between the new and actual coordinates
 - dev: element of StepperSystem type
 - new_coords: array of the new coordinates
 """
-deltacoord(dev::StepperSystem, new_coords::AbstractVector) = new_coords - getpos(dev)
+function deltacoord(dev::StepperSystem, new_coords) 
+    
+    if length(new_coords) != length(getpos(dev))
+        throw(DimensionMismatch("new_coords must have the same length as dev.pos"))
+    end
+   
+    δc = new_coords .- getpos(dev)
+    return δc
+end
 
 """
-    manhattan_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+    manhattan_msg(dev::StepperSystem, id, steps)
 
 ## Description
 Function to pass one instruction per line
@@ -59,7 +67,7 @@ Function to pass one instruction per line
 - id: stepper motor id
 - steps: number of steps
 """
-function manhattan_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+function manhattan_msg(dev::StepperSystem, id, steps)
     
     n =length(id)
 
@@ -78,7 +86,7 @@ end
 
 
 """
-    oneline_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+    oneline_msg(dev::StepperSystem, id, steps)
 
 ## Description
 Function to pass all instructions in one line
@@ -87,7 +95,7 @@ Function to pass all instructions in one line
 - id: stepper motor id
 - steps: number of steps
 """
-function oneline_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+function oneline_msg(dev::StepperSystem, id, steps)
 
     msg = prod(id.*";".*string.(steps).*";")
     if !isopen(dev.con)
@@ -100,7 +108,7 @@ end
 
 
 """
-    test_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+    test_msg(dev::StepperSystem, id, steps)
 
 ## Description
 Function test message for a stepper motor system
@@ -109,12 +117,12 @@ Function test message for a stepper motor system
 - id: stepper motor id
 - steps: number of steps
 """
-function test_msg(dev::StepperSystem, id::AbstractVector, steps::AbstractVector)
+function test_msg(dev::StepperSystem, id, steps)
     msg = prod(id.*";".*string.(steps).*";")
 end
 
 """
-    stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method="manhattan")
+    stepper_move!(dev::StepperSystem, new_coords; relat=true, order=1:length(dev.id), method="manhattan")
 
 ## Description
 Move system
@@ -149,7 +157,7 @@ julia> stepper_move!(dev, [10.0, 20.0])
  40.0
 ```
 """
-function stepper_move!(dev::StepperSystem, new_coords::AbstractVector; relat=true, order=1:length(dev.id), method=manhattan_msg)
+function stepper_move!(dev::StepperSystem, new_coords; relat=true, order=1:length(dev.id), method=manhattan_msg)
 
     n = length(new_coords)
 

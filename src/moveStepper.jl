@@ -154,18 +154,21 @@ function stepper_move!(dev::StepperSystem, new_coords; relat=true, order=1:lengt
 #        new_coords = deltacoord(dev, new_coords)
 #    end
     steps = [dev.coord2step[i](new_coords[dev.depend[i]]) for i in 1:n]
+    coords = [dev.step2coord[k](steps[dev.depend[k]]) for k in 1:n]
     
     if !relat
         steps_init = [dev.coord2step[i](getpos(dev)[dev.depend[i]]) for i in 1:n]
+        coords_init = [dev.step2coord[k](steps_init[dev.depend[k]]) for k in 1:n]
         steps = steps - steps_init
+        coords = coords - coords_init
     end
 
     steps_msg = steps[order]
 
     msg = method(dev, stepper_id, steps_msg)
 
-    coords = [dev.step2coord[k](steps[dev.depend[k]]) for k in 1:n]
-    dev.pos[order] += coords[order] 
+    #coords = [dev.step2coord[k](steps[dev.depend[k]]) for k in 1:n]
+    dev.pos[order] += coords[order]
 
     return msg
 end

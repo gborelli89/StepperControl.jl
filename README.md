@@ -7,8 +7,8 @@ A basic stepper motor control implementation. It can be used with an Arduino boa
 The `StepperControl.jl` is a non official Julia package. It can be installed using the following command inside the Julia REPL:
 
 ```julia
-using Pkg
-Pkg.add("https://github.com/gborelli89/StepperControl.jl")
+julia> using Pkg
+julia> Pkg.add("https://github.com/gborelli89/StepperControl.jl")
 ```
 
 
@@ -16,75 +16,127 @@ Pkg.add("https://github.com/gborelli89/StepperControl.jl")
 
 The connection can be made with the function `stepper_open`. The arguments are
 
+* `dof`: number of degrees of freedom (integer value).
 * `port`: if *nothing* (default), then the first port in the list is used. The USB port was used during the development (Arduino).
-* `baud`: baudrate (default = 9600)
+* `baud`: baudrate (default = 9600).
+* `testnocon`: used for testing purposes, if `true` then no actual connection is created.
+
+The output is an object of `StepperSystem` type with the number of degrees of freedom desired. The attributes are:
+
+* `con`: serial connection (missing if testnocon = true).
+* `pos`: current position. 
+* `id`: strings with stepper motors IDs. 
+* `step2coord`: array of functions (one for each DOF) to convert the number of steps to coordinates.
+* `coord2step`: array of functions (one for each DOF) to convert the coordinates to the number of steps.
+* `depend`: array with the dependencies. When used allows more complex systems. As default the first coordinate depends only on the first stepper motor, the second on the second stepper motor and so on so forth. This attribute allows that a given coordinate will depend on multiple stepper motors.
+
+Apart from the connection, all the other attributes must be modified accordingly. It is important to notice that `step2coord` and `coord2step` accept any function which transforms motor steps into coordinate and vice versa.
 
 Examples:
 
 ```julia
-con = serial_open() # for port=nothing and baud=9600
-con = serial_open(port="dev/ttyACM0)
+julia> dev = stepper_open(3, testnocon=true); # for 3 DOF and no connection (testing)
+
+julia> dev.pos # returns the position (origin as defaul)
+3-element StaticArrays.MArray{Tuple{3},Float64,1,3} with indices SOneTo(3):
+ 0.0
+ 0.0
+ 0.0
+
+julia> dev.id # returns the stepper IDs (should be changed accordingly)
+3-element StaticArrays.MArray{Tuple{3},String,1,3} with indices SOneTo(3):
+ "m1"
+ "m2"
+ "m3"
 ```
 
-The configuration can be done with the function `stepper_config`. The arguments for the function are
+The configuration can be done with the function `stepper_config!`. The arguments for the function are
 
-* `motorID`: an array of strings with the stepper motors ID.
-* `ratio`: the displacement/#steps ratio for each stepper motor
+* `dev`: object of `StepperSystem` type.
+* `motorID`: an array of strings with the stepper motors IDs.
+* `step2coord`: array of functions (one for each DOF) to convert the number of steps to coordinates.
+* `coord2step`: array of functions (one for each DOF) to convert the coordinates to the number of steps.
 
-Notice this provides a generic implementation. Many steppers can be used at the same time. Also, the `ratio` can consider linear or angular displacements, depending on the application.
+This function provides a way to change the `StepperSystem` attributes.
 
 Example:
 
 ```julia
-robo = stepper_config(["x","y","z","w"], [0.05,0.05.0.05,0.01])
+# Change stepper motors IDs  
+julia> stepper_config!(dev, motorID=["x","y","z"]);
+julia> dev.id
+3-element StaticArrays.MArray{Tuple{3},String,1,3} with indices SOneTo(3):
+ "x"
+ "y"
+ "z"
 ```
-
-The function retuns a *NamedTuple* with the initial position `robo.pos` (always considered at the origin), the motor IDs `robo.motorID` and the ratios `robo.ratio`. The position is the only variable which can be modified. The other arguments (motor ID and ratios) are given in tuples, therefore are fixed values.
 
 ## Conversion between coordinates and steps
 
-Two auxiliary functions for stepper motor moving were created: `coords2steps` and `steps2coords!`. The first one converts an array with new coordinates to steps, that can be passed to the Arduino board via USB cable to control the steppe motors of the system. The second one does the other way round, converts the steps into coordinates, which is important to update the `robo.pos`.
+### Linear functions
 
-Parameters for the functions (in order):
+Auxiliary linear functions are implemented. In many simple systems each stepper is responsible for displacements in one specific direction without influencing the others (the movements are decoupled!). Also, in many cases the relation between the displacement and the number of steps is (or can be considered) linear.
 
-* the *NamedTuple* returned from `stepper_config`
-* array with the  coordinates (`coords2steps`) or the number of steps (`steps2coords!`)
-* indexes with the motor order
-* `relat`: boolean indicating if the movement is absolute or relative (default - `relat=true`)
+In order to transform the coordinates into steps the function `linear_coord2step` can be applied. On the other hand, if the number of steps should be converted into displagement in a given coordinate system, the function `linear_step2coord` can be used. In both cases two arguments can be given: the number of steps needed for one full rotation of the stepper motor and the bell crank radius. In the raius is equal to one (default), then the result is the angular displacement in radians.
 
 Examples:
 
 ```julia
-steps_a = coords2steps(robo, [1.0,2.0,3.0,2.5], collect(1:4)) 
-steps2coords!(robo, steps_a, collect(1:4))
+# Let's consider no. steps per revolution = 2048 (stepper datasheet), bell crank radius = 1.0    
 
-steps_b = coords2steps(robo, [3.0,2.6], [2,1], relat=false) # absolute movement for "y" and "x" 
-steps2coords!(robo, steps_b, [2,1])
+julia> x = linear_step2coord(spr=2048, r=1.0);
+julia> x(512)*180/π
+90.0
+
+julia> sx = linear_coord2step(spr=2048, r=1.0);
+julia> sx(π/2)
+512
 ```
+
+### Functions depending on more steppers or non linear relations
+
+The `step2coord` and the `coord2step` attributes of the `StepperSystem` object can accept any function for coordinate/step conversion. If desired, a system calibration can be performed and non-linearities can be incorporated to the model. Also, some systems can be coupled. Some of these situations can be treated with the `depend` attribute. An example is show in [https://github.com/gborelli89/flowControl_GA](https://github.com/gborelli89/flowControl_GA). 
+
 
 ## Zero function
 
-One can define a position as zero with the function `zero_stepper!`. There is only one parameter: the *NamedTuple* defined above (returned from `stepper_config`). The `robo.pos` is modified and all the entries are changed to *0.0*.
+One can define a position as zero with the function `zero_stepper!`. There is only one parameter: the `StepperSystem` object. The `pos` attriute is modified and all the entries are changed to *0.0*. To return the current position one can type `dev.pos` or `getpos(dev)`, *dev* being the `StepperSytem` object.
 
-## Move single or multiple steppers
+## Move function
 
-The function `move_stepper!` can be used to move one or many stepper motors of the system and update the pos entries. The parameters are
+The function `move_stepper!` can be used to move the stepper motors of the system and update the `pos` entries. The parameters are
 
-* connection (returned from `stepper_open`)
-* *NamedTuple* with the position and configuration info (returned from `stepper_config`)
-* an array with the new coordinates
-
-There are also some optional parameters:
-
-* `relat`: boolean indicating if the movement is absolute or relative (default - `relat=true`)
-* `order`: indexes indicating the sequence of motors. If *nothing* (default) ascending order is considered
-* `method`: if *"manhattan"* (default) then one line for each motor is sent. If *"all"* then everything is sent in one line string. This will depend on the Arduino code.
+* `dev`: object of StepperSystem type
+* `new_coords`: array of the new coordinates
+* `relat`: if true the relative movement is performed
+* `order`: trigger order
+* `method`: there are three methods available. For "manhattan_msg" steps are written one at a time. For "oneline_msg" everything is passed right through. The "test_msg" method don't need any connections (dev.con = missing).
 
 Example:
 
 ```julia
- move_stepper!(con, robo, [1.0,2.0,3.4,7.1])  
- ```
+julia> dev = stepper_open(2);
+
+julia> stepper_config!(dev, motorID=["x","y"]);
+
+julia> stepper_move!(dev, [10.0, 20.0])
+2-element Array{Any,1}:
+ "x;10;"
+ "y;20;"
+
+julia> getpos(dev)
+ 2-element Array{Float64,1}:
+ 10.0
+ 20.0
+
+julia> stepper_move!(dev, [10.0, 20.0], order=[2,1], method=StepperControl.oneline_msg)
+ "y;20;x;10;"
+
+julia> getpos(dev)
+ 2-element Array{Float64,1}:
+ 20.0
+ 40.0
+```
 
 # Example of an Arduino code
 
@@ -92,9 +144,18 @@ Example:
 
 ```julia
 using StepperControl
-dev = stepper_open()
-robot = stepper_config(["x","y"], [0.1,0.1])
-# move using move_stepper!
+dev = stepper_open(2)
+
+# Steps to coordinates function
+s2c(step) = step*0.001 # 0.001 is the conversion ratio
+
+# Coordinates to steps function (inverse of s2c)
+c2s(coord) = coord/0.001
+
+# Configure system
+stepper_config(dev, motorID=["x","y"], step2coord=[s2c,s2c], coord2step=[c2s,c2s]);
+
+# Move using move_stepper!
 ```
 
 **Arduino**

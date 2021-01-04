@@ -13,7 +13,7 @@ end
 
 
 """
-    stepper_open(dof; port=nothing, baud=9600)
+    stepper_open(dof::Int; port=nothing, baud=9600)
 
 ## Description 
 Function to open a generic connection and returns a StepperSystem type to control a system of stepper motors
@@ -29,10 +29,10 @@ The output is a StepperSystem type including the following elements with fixed s
 - id: stepper motors IDs
 - step2coord: array of functions to convert steps into coordinates
 - coord2step: array of functions to convert coordinates into steps
-- depend: element with the dependecies. To be used with the conversio functions. Allows dependent systems.
-Except from con, all the other elements must be configured (see StepperControl.stepper_config)
+- depend: attribute with the dependecies. To be used with the conversion functions. Allows dependent systems.
+Except from con, all the other attributes must be configured (see StepperControl.stepper_config)
 """
-function stepper_open(dof; port=nothing, baud=9600, testnocon=false)
+function stepper_open(dof::Int; port=nothing, baud=9600, testnocon=false)
 
     if testnocon
         con = missing
@@ -60,7 +60,7 @@ end
 Linear function to find coordinates from a number of steps
 ## Arguments
 - spr: steps per revolution
-- r: bell crank radius. The unit can be used to express angle displacements in radians.
+- r: bell crank radius. The unit can be used to express angular displacements, in radians.
 ## Example
 ```jldoctest
 julia> x = linear_step2coord(spr=2048);
@@ -89,7 +89,7 @@ end
 Linear function to find steps from a displacement
 ## Arguments
 - spr: steps per revolution
-- r: bell crank radius. The unit can be used to express angle displacements in radians.
+- r: bell crank radius. The unit can be used to express angular displacements, in radians.
 ## Example
 ```jldoctest
 julia> x = linear_coord2step(spr=2048);
@@ -171,71 +171,3 @@ function stepper_config!(dev::StepperSystem; motorID::AbstractVector = dev.id,
     dev.depend = depend
 
 end
-
-    
-
-
-"""
-    stepper_open(;port=nothing, baud=9600)
-
-## Description
-Function to open the device.
-## Arguments
-- motorID: array of strings with the IDs of the stepper motors used
-- port: port path. If nothing it'll get the first port of list_serialports()
-- baud: baud rate
-- testnocon: modify to true for testing with no serial connection
-returns the connection
-"""
-#function stepper_open(motorID::AbstractString ;port=nothing, baud=9600, testnocon=false)
-#
-#    n = length(motorID)
-#
-#    if testnocon
-#        con = nothing
-#    else
-#        if isnothing(port)
-#            port = list_serialports()[1]
-#        end
-#        con = SerialPort(port, baud)
-#    end
-#
-#    pos = repeat([0.0], n)
-#
-#    dev = (con=con, motorID=motorID, pos=pos)
-#    return dev
-#end
-
-"""
-    stepper_config(motorID::AbstractArray, ratio::AbstractArray)
-
-## Description    
-Initial configuration of the system.
-## Arguments
-- motorID: array of strings with the IDs of the stepper motors used
-- ratio: array with the relation displacement/#steps for each stepper motor must have the same length as motorID
-returns the initial position (at origin), stepper IDs and ratios
-## Example
-```jldoctest
-julia> using StepperControl
-
-julia> r = stepper_config(["x","y","z"], [1.0,1.0,1.0])
-(pos = [0.0, 0.0, 0.0], motorID = ("x", "y", "z"), ratio = (1.0, 1.0, 1.0))
-```
-"""
-#function stepper_config(motorID::AbstractArray, conversion::AbstractArray)
-#    
-#    motorID = string.(motorID)
-#    #ratio = float(ratio)
-#
-#    n = length(motorID)
-#    if length(conversion) != n
-#        throw(DimensionMismatch("The number of ratios provided must match the number of stepper motors!"))
-#    end
-#
-#    pos = @MVector zeros(n)
-#
-#    init = (pos=pos, motorID=Tuple(motorID), conversion=Tuple(conversion))
-#
-#    return init
-#end
